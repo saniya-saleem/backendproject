@@ -34,28 +34,44 @@ class WishlistSerializer(serializers.ModelSerializer):
         fields = ['id', 'product', 'product_name', 'product_price','product_image']
         
         
+from rest_framework import serializers
+from .models import Order, OrderItem
+
 
 class OrderItemSerializer(serializers.ModelSerializer):
-    product_name = serializers.ReadOnlyField(source='product.name')
+    product_name = serializers.ReadOnlyField(source="product.name")
 
     class Meta:
         model = OrderItem
-        fields = ['id', 'product', 'product_name', 'quantity', 'price']
+        fields = [
+            "id",
+            "product",
+            "product_name",
+            "quantity",
+            "price",
+        ]
 
 
 class OrderSerializer(serializers.ModelSerializer):
-    items = OrderItemSerializer(many=True, read_only=True)
+    items = OrderItemSerializer(
+        many=True,
+        read_only=True
+    )
 
     class Meta:
         model = Order
         fields = [
-            'id',
-            'city',
-            'name',
-            'total_amount',
-            'payment_method',
-            'address',
-            'status',
-            'created_at',
-            'items'
+            "id",
+            "customer",
+            "email",
+            "phone",
+            "city",
+            "state",
+            "pincode",
+            "address",
+            "payment",     # ✅ FIXED
+            "total",       # ✅ FIXED
+            "status",
+            "created_at",
+            "items",       # ✅ MUST BE INCLUDED
         ]

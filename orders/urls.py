@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import( AddToCartAPIView,ViewCartAPIView,RemoveFromCartAPIView,
                    AddToWishlistAPIView,ViewWishlistAPIView,RemoveFromWishlistAPIView,CheckoutAPIView,
-                   OrderHistoryAPIView,DecreaseCartItemAPIView
+                   OrderHistoryAPIView,DecreaseCartItemAPIView,RazorpayOrderAPIView,RazorpayVerifyAPIView,ClearCartAPIView
 )
 
 urlpatterns = [
@@ -12,14 +12,17 @@ urlpatterns = [
     
     path('wishlist/add/', AddToWishlistAPIView.as_view()),
     path('wishlist/',ViewWishlistAPIView.as_view()),
-    path('wishlist/remove/<int:pk>/',RemoveFromWishlistAPIView.as_view())
+    path('wishlist/remove/<int:pk>/',RemoveFromWishlistAPIView.as_view()),
+    path("razorpay/order/", RazorpayOrderAPIView.as_view()),
+    path("razorpay/verify/", RazorpayVerifyAPIView.as_view()),
+    path('cart/clear/', ClearCartAPIView.as_view()),
+
 ]
 
 
 urlpatterns +=[
     path('checkout/', CheckoutAPIView.as_view()),
     path('orders/',OrderHistoryAPIView.as_view()),
-
 ]
 
 

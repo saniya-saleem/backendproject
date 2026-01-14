@@ -151,3 +151,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+
+RAZORPAY_KEY_ID = "rzp_test_S1M7SyaoE9kQ4A"
+RAZORPAY_KEY_SECRET = "sVsmAmpNY7rDz7nUAoeSp4vj"

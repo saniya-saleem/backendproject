@@ -4,12 +4,12 @@ from .models import CartItem, Wishlist, Order, OrderItem
 
 @admin.register(CartItem)
 class CartItemAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'product', 'quantity')
+    list_display = ("id", "user", "product", "quantity")
 
 
 @admin.register(Wishlist)
 class WishlistAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'product')
+    list_display = ("id", "user", "product")
 
 
 class OrderItemInline(admin.TabularInline):
@@ -19,6 +19,18 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'total_amount', 'status', 'payment_method', 'created_at')
-    list_filter = ('status', 'payment_method')
+    list_display = (
+        "id",
+        "user",
+        "total",       # ✅ FIXED
+        "status",
+        "payment",     # ✅ FIXED
+        "created_at",
+    )
+
+    list_filter = (
+        "status",
+        "payment",     # ✅ FIXED
+    )
+
     inlines = [OrderItemInline]
