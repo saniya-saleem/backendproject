@@ -13,7 +13,7 @@ from django.conf import settings
 from decimal import Decimal
 
 
-# ---------------- CART ----------------
+# ---------------- Cart ----------------
 
 class AddToCartAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -22,10 +22,24 @@ class AddToCartAPIView(APIView):
         product_id = request.data.get("product_id")
         product = get_object_or_404(Product, id=product_id)
 
+      
+        if product.stock <= 0:
+            return Response(
+                {"error": "Product is out of stock"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         cart_item, created = CartItem.objects.get_or_create(
             user=request.user,
             product=product
         )
+
+        
+        if cart_item.quantity >= product.stock:
+            return Response(
+                {"error": "No more stock available"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         cart_item.quantity = cart_item.quantity + 1 if not created else 1
         cart_item.save()
@@ -36,11 +50,13 @@ class AddToCartAPIView(APIView):
         )
 
 
+
+
 class ViewCartAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        cart_items = CartItem.objects.filter(user=request.user)
+        cart_items = CartItem.objects.filter(user=request.user).order_by("id")
         serializer = CartItemSerializer(cart_items, many=True)
         return Response(serializer.data)
 
@@ -56,6 +72,7 @@ class RemoveFromCartAPIView(APIView):
         )
         cart_item.delete()
         return Response({"message": "Item removed from cart"})
+
 
 
 class DecreaseCartItemAPIView(APIView):
@@ -77,8 +94,8 @@ class DecreaseCartItemAPIView(APIView):
             return Response({"message": "Item removed from cart"})
 
 
-# ---------------- WISHLIST ----------------
 
+# ---------------- Wishlist ----------------
 class AddToWishlistAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -116,7 +133,8 @@ class RemoveFromWishlistAPIView(APIView):
         return Response({"message": "Removed from wishlist"})
 
 
-# ---------------- CHECKOUT ----------------
+
+#------------------checkout-------------------
 
 
 
@@ -132,6 +150,16 @@ class CheckoutAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # ✅ FINAL STOCK VALIDATION
+        for item in cart_items:
+            if item.product.stock < item.quantity:
+                return Response(
+                    {
+                        "error": f"{item.product.name} is out of stock"
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
         total = Decimal("0")
         for item in cart_items:
             total += item.product.price * item.quantity
@@ -145,29 +173,35 @@ class CheckoutAPIView(APIView):
             state=request.data.get("state"),
             pincode=request.data.get("pincode"),
             address=request.data.get("address"),
-            payment=request.data.get("payment"),  # ✅ IMPORTANT
+            payment=request.data.get("payment"),
             total=total,
             status="Pending",
         )
 
-        order_items = [
-            OrderItem(
-                order=order,
-                product=item.product,
-                quantity=item.quantity,
-                price=item.product.price
+        order_items = []
+
+        for item in cart_items:
+            order_items.append(
+                OrderItem(
+                    order=order,
+                    product=item.product,
+                    quantity=item.quantity,
+                    price=item.product.price
+                )
             )
-            for item in cart_items
-        ]
+
+            # ✅ REDUCE PRODUCT STOCK
+            item.product.stock -= item.quantity
+            item.product.save()
 
         OrderItem.objects.bulk_create(order_items)
-
-        cart_items.delete()  # ✅ clear cart
+        cart_items.delete()
 
         return Response(
             OrderSerializer(order).data,
             status=status.HTTP_201_CREATED
         )
+
 
 
 
@@ -196,7 +230,89 @@ class RazorpayOrderAPIView(APIView):
         )
 
         razorpay_order = client.order.create({
-            "amount": int(amount * 100),  # ₹ → paise
+            "amount": int(amount * 100),  
+            "currency": "INR",
+            "payment_capture": 1
+        })
+
+        return Response({
+            "razorpay_order_id": razorpay_order["id"],
+            "key": settings.RAZORPAY_KEY_ID,
+            "amount": razorpay_order["amount"]
+        })
+
+class RazorpayVerifyAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        client = razorpay.Client(
+            auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
+        )
+
+        try:
+            client.utility.verify_payment_signature({
+                "razorpay_order_id": request.data["razorpay_order_id"],
+                "razorpay_payment_id": request.data["razorpay_payment_id"],
+                "razorpay_signature": request.data["razorpay_signature"],
+            })
+   
+            return Response({"status": "success"})
+
+        except:
+            return Response(
+                {"status": "failed"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+class DecreaseCartItemAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        cart_item = get_object_or_404(
+            CartItem,
+            id=pk,
+            user=request.user
+        )
+
+        if cart_item.quantity > 1:
+            cart_item.quantity -= 1
+            cart_item.save()
+            return Response(CartItemSerializer(cart_item).data)
+        else:
+            cart_item.delete()
+            return Response({"message": "Item removed from cart"})
+
+
+
+
+
+
+
+# ---------------- ORDER HISTORY ----------------
+
+class OrderHistoryAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        orders = Order.objects.filter(user=request.user).order_by("-created_at")
+        serializer = OrderSerializer(orders, many=True)
+        return Response(serializer.data)
+
+
+
+
+
+class RazorpayOrderAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        amount = Decimal(request.data.get("amount"))
+
+        client = razorpay.Client(
+            auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
+        )
+
+        razorpay_order = client.order.create({
+            "amount": int(amount * 100),  
             "currency": "INR",
             "payment_capture": 1
         })
@@ -232,7 +348,7 @@ class RazorpayVerifyAPIView(APIView):
 
 
 
-# views.py
+
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response

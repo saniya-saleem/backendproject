@@ -27,11 +27,14 @@ class WishlistSerializer(serializers.ModelSerializer):
         source="product.image",
         read_only=True
     )
-
+    product_stock = serializers.IntegerField(
+        source="product.stock",
+        read_only=True
+    )
 
     class Meta:
         model = Wishlist
-        fields = ['id', 'product', 'product_name', 'product_price','product_image']
+        fields = ['id', 'product', 'product_name', 'product_price','product_image','product_stock']
         
         
 from rest_framework import serializers

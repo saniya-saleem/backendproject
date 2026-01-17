@@ -133,3 +133,27 @@ class AdminProductDetailAPIView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+    
+    
+# admin/views.py
+
+class AdminUserOrdersAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request, pk):
+        orders = Order.objects.filter(user_id=pk)
+        return Response(AdminOrderSerializer(orders, many=True).data)
+
+class AdminUserDetailAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request, pk):
+        try:
+            user = User.objects.get(pk=pk, is_staff=False)
+        except User.DoesNotExist:
+            return Response(
+                {"error": "User not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        return Response(AdminUserSerializer(user).data)

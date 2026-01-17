@@ -2,15 +2,14 @@ from django.urls import path
 from .views import (
     AdminTokenView,
     AdminDashboardAPIView,
-
     AdminUsersAPIView,
     AdminUserStatusAPIView,
-
     AdminProductsAPIView,
     AdminProductDetailAPIView,
-
     AdminOrdersAPIView,
     AdminOrderStatusAPIView,
+    AdminUserOrdersAPIView,
+    AdminUserDetailAPIView
 )
 
 urlpatterns = [
@@ -22,7 +21,10 @@ urlpatterns = [
 
     # USERS
     path("users/", AdminUsersAPIView.as_view()),
-    path("users/<int:pk>/", AdminUserStatusAPIView.as_view()),
+    path("users/<int:pk>/", AdminUserDetailAPIView.as_view()),   # GET
+    path("users/<int:pk>/status/", AdminUserStatusAPIView.as_view()),  # PATCH
+    
+    path("users/<int:pk>/orders/", AdminUserOrdersAPIView.as_view()),
 
     # PRODUCTS
     path("products/", AdminProductsAPIView.as_view()),
