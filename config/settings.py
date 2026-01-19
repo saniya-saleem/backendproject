@@ -88,9 +88,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME':'women_accessories_db',
-        'USER': 'postgres',
-        'PASSWORD': 'saniya123',
-        'HOST': 'localhost',
+        'USER': 'bellavogue_user',
+        'PASSWORD': 'bellavogue_user',
+        'HOST': 'bellavogue-db.chki2eu2go9a.ap-southeast-2.rds.amazonaws.com',
         'PORT': '5432',
     }
 }
